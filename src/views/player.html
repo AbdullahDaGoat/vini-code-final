@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Savingshub.watch Player</title>
+    <!-- Use hls.js to handle .m3u8 in Chrome, Firefox, Edge -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  </head>
+  <body style="margin: 0; overflow: hidden; background: black;">
+    <video id="video" controls autoplay playsinline style="width: 100vw; height: 100vh;"></video>
+
+    <script>
+      (async function() {
+        const video = document.getElementById('video');
+
+        // Extract token from query param
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        if (!token) {
+          document.body.innerHTML = "<h2 style='color:red'>Missing token.</h2>";
+          return;
+        }
+
+        try {
+          // Fetch the single best stream from /play/:token
+          const resp = await fetch(`/play/${token}`);
+          if (!resp.ok) {
+            document.body.innerHTML = "<h2 style='color:red'>Stream not found or link expired.</h2>";
+            return;
+          }
+          const data = await resp.json();
+          const bestStream = data.bestStream;
+          if (!bestStream) {
+            document.body.innerHTML = "<h2 style='color:red'>No suitable stream found.</h2>";
+            return;
+          }
+
+          console.log("DEBUG: bestStream =>", bestStream);
+
+          // Optional: attach subtitles if present
+          if (Array.isArray(bestStream.captions)) {
+            bestStream.captions.forEach(caption => {
+              if (caption.type === "vtt") {
+                const track = document.createElement("track");
+                track.kind = "subtitles";
+                track.label = caption.language || "Subtitle";
+                track.srclang = caption.language || "en";
+                track.src = caption.url;
+                video.appendChild(track);
+              }
+            });
+          }
+
+          if (bestStream.type === "hls") {
+            if (Hls.isSupported()) {
+              const hls = new Hls();
+              hls.loadSource(bestStream.playlist);
+              hls.attachMedia(video);
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+              video.src = bestStream.playlist;
+            } else {
+              document.body.innerHTML = "<h2 style='color:red'>HLS not supported in this browser.</h2>";
+            }
+          } else if (bestStream.type === "file") {
+            if (bestStream.qualities) {
+              const qualityOrder = ["4k","1080","720","480","360","unknown"];
+              let chosenUrl = null;
+              for (const q of qualityOrder) {
+                if (bestStream.qualities[q]) {
+                  chosenUrl = bestStream.qualities[q].url;
+                  break;
+                }
+              }
+              video.src = chosenUrl || "";
+            } else {
+              document.body.innerHTML = "<h2 style='color:red'>No file-based qualities found.</h2>";
+            }
+          } else {
+            document.body.innerHTML = "<h2 style='color:red'>Unsupported stream type.</h2>";
+          }
+
+          // Ensure video goes full-screen on play
+          video.addEventListener("loadedmetadata", async () => {
+            try {
+              if (video.requestFullscreen) {
+                await video.requestFullscreen();
+              } else if (video.webkitRequestFullscreen) {
+                await video.webkitRequestFullscreen();
+              } else if (video.mozRequestFullScreen) {
+                await video.mozRequestFullScreen();
+              } else if (video.msRequestFullscreen) {
+                await video.msRequestFullscreen();
+              }
+            } catch (err) {
+              console.warn("Fullscreen request failed:", err);
+            }
+          });
+
+        } catch (err) {
+          console.error("Error in player script:", err);
+          document.body.innerHTML = "<h2 style='color:red'>Error loading stream.</h2>";
+        }
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,29 @@
+{
+    "name": "savingshub-watch",
+    "version": "1.0.0",
+    "description": "cool",
+    "main": "src/index.js",
+    "type": "module",
+    "scripts": {
+        "start": "node ./src/index.js",
+        "dev": "nodemon ./src/index.js"
+    },
+    "dependencies": {
+        "@movie-web/providers": "github:sussy-code/providers",
+        "body-parser": "^1.20.3",
+        "cors": "^2.8.5",
+        "discord.js": "^14.17.3",
+        "dotenv": "^16.4.7",
+        "express": "^4.21.2",
+        "node-fetch": "^3.3.2",
+        "savingshub-watch": "file:"
+    },
+    "devDependencies": {
+        "@types/node": "^18.19.74",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.7.3",
+        "vite": "^5.4.14",
+        "vite-node": "^1.6.0",
+        "vite-plugin-dts": "^3.9.1"
+    }
+}
